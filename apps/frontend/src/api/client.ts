@@ -4,6 +4,9 @@ import { ApiError, fallbackMessageFor, kindForStatus } from './errors';
 export type QueryParams = Record<string, unknown>;
 
 function buildUrl(path: string, params?: object): string {
+  if (!API_BASE_URL) {
+    throw new ApiError('VITE_API_BASE_URL is not configured', null, 'unknown');
+  }
   const url = new URL(path, API_BASE_URL);
   if (params) {
     for (const [key, value] of Object.entries(params as QueryParams)) {

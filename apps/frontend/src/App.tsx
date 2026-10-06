@@ -16,6 +16,7 @@ function App() {
         <Route path="/sla" element={<SlaPage />} />
         <Route path="/issues" element={<IssuesPage />} />
         <Route path="/eod" element={<EodPage />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppShell>
   );

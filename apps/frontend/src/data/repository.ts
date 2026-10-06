@@ -1,5 +1,7 @@
 import { apiClient } from '../api/client';
+import { DEMO_MODE } from '../lib/api';
 import { formatTime } from '../lib/format';
+import * as demo from './demoStore';
 import type {
   DashboardData,
   EodReport,
@@ -48,11 +50,13 @@ export async function getGroups(params?: {
   type?: GroupType;
   search?: string;
 }): Promise<MonitoredGroup[]> {
+  if (DEMO_MODE) return demo.getGroups(params);
   const res = await apiClient.get<GroupResponse[]>('/groups', params);
   return res.map(mapGroupResponse);
 }
 
 export async function getGroup(id: string): Promise<MonitoredGroup> {
+  if (DEMO_MODE) return demo.getGroup(id);
   const res = await apiClient.get<GroupResponse>(`/groups/${id}`);
   return mapGroupResponse(res);
 }
@@ -65,6 +69,7 @@ export async function createGroup(input: {
   memberIds?: string[];
   keywords?: string[];
 }): Promise<MonitoredGroup> {
+  if (DEMO_MODE) return demo.createGroup(input);
   const created = await apiClient.post<GroupResponse>('/groups', {
     whatsappGroupId: input.whatsappGroupId,
     name: input.name,
@@ -94,6 +99,7 @@ export async function updateGroup(
   id: string,
   patch: { name?: string; type?: GroupType; slaMinutes?: number; active?: boolean },
 ): Promise<MonitoredGroup> {
+  if (DEMO_MODE) return demo.updateGroup(id, patch);
   const res = await apiClient.patch<GroupResponse>(`/groups/${id}`, patch);
   return mapGroupResponse(res);
 }
@@ -111,6 +117,7 @@ export function fetchMonitoredGroups(): Promise<MonitoredGroup[]> {
 // ---------------------------------------------------------------------------
 
 export async function getTeamMembers(params?: { active?: boolean; search?: string }): Promise<TeamMember[]> {
+  if (DEMO_MODE) return demo.getTeamMembers(params);
   const res = await apiClient.get<TeamMemberResponse[]>('/team-members', params);
   return res.map(mapTeamMemberResponse);
 }
@@ -132,16 +139,19 @@ export interface IssueFilters {
 }
 
 export async function getIssues(filters?: IssueFilters): Promise<Issue[]> {
+  if (DEMO_MODE) return demo.getIssues(filters);
   const res = await apiClient.get<IssueResponse[]>('/issues', filters);
   return res.map((issue) => mapIssueResponse(issue));
 }
 
 export async function getIssue(id: string): Promise<Issue> {
+  if (DEMO_MODE) return demo.getIssue(id);
   const res = await apiClient.get<IssueDetailResponse>(`/issues/${id}`);
   return mapIssueResponse(res);
 }
 
 export async function updateIssueStatus(id: string, status: IssueStatus, resolvedBy?: string): Promise<Issue> {
+  if (DEMO_MODE) return demo.updateIssueStatus(id, status);
   const res = await apiClient.patch<IssueDetailResponse>(`/issues/${id}`, {
     status,
     ...(resolvedBy ? { resolvedBy } : {}),
@@ -166,16 +176,19 @@ export interface SlaFilters {
 }
 
 export async function getSlaIncidents(filters?: SlaFilters): Promise<SlaIncident[]> {
+  if (DEMO_MODE) return demo.getSlaIncidents(filters);
   const res = await apiClient.get<SlaResponse[]>('/sla', filters);
   return res.map(mapSlaResponse);
 }
 
 export async function getSlaIncident(id: string): Promise<SlaIncident> {
+  if (DEMO_MODE) return demo.getSlaIncident(id);
   const res = await apiClient.get<SlaResponse>(`/sla/${id}`);
   return mapSlaResponse(res);
 }
 
 export async function respondSla(id: string, respondedBy?: string): Promise<SlaIncident> {
+  if (DEMO_MODE) return demo.respondSla(id);
   const res = await apiClient.patch<SlaResponse>(`/sla/${id}`, {
     action: 'RESPOND',
     ...(respondedBy ? { respondedBy } : {}),
@@ -184,6 +197,7 @@ export async function respondSla(id: string, respondedBy?: string): Promise<SlaI
 }
 
 export async function missSla(id: string): Promise<SlaIncident> {
+  if (DEMO_MODE) return demo.missSla(id);
   const res = await apiClient.patch<SlaResponse>(`/sla/${id}`, { action: 'MISS' });
   return mapSlaResponse(res);
 }
@@ -204,15 +218,18 @@ export interface EodFilters {
 }
 
 export async function getEod(filters?: EodFilters): Promise<EodReport[]> {
+  if (DEMO_MODE) return demo.getEod(filters);
   const res = await apiClient.get<EodResponse[]>('/eod', filters);
   return res.map((report) => mapEodResponse(report));
 }
 
 export async function getEodSummary(filters?: { date?: string; groupId?: string }): Promise<EodSummaryResponse> {
+  if (DEMO_MODE) return demo.getEodSummary(filters);
   return apiClient.get<EodSummaryResponse>('/eod/summary', filters);
 }
 
 export async function getEodReport(id: string): Promise<EodReport> {
+  if (DEMO_MODE) return demo.getEodReport(id);
   const res = await apiClient.get<EodDetailResponse>(`/eod/${id}`);
   return mapEodResponse(res);
 }
@@ -235,6 +252,7 @@ export async function fetchEodReports(date?: string): Promise<EodData> {
 // ---------------------------------------------------------------------------
 
 export async function getDashboard(date?: string): Promise<DashboardData> {
+  if (DEMO_MODE) return demo.getDashboard(date);
   const res = await apiClient.get<DashboardResponse>('/dashboard', { date });
   return mapDashboardResponse(res);
 }
