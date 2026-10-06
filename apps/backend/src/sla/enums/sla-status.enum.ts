@@ -1,0 +1,7 @@
+export enum SlaStatus {
+  OPEN = 'OPEN',
+  RESPONDED = 'RESPONDED',
+  MISSED = 'MISSED',
+  ESCALATED = 'ESCALATED',
+  RESOLVED = 'RESOLVED',
+}

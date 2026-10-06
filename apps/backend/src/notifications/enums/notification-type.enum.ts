@@ -1,0 +1,5 @@
+export enum NotificationType {
+  TEAM_SLA_REMINDER = 'TEAM_SLA_REMINDER',
+  CEO_SLA_ALERT = 'CEO_SLA_ALERT',
+  EOD_REMINDER = 'EOD_REMINDER',
+}
