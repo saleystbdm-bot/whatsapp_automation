@@ -14,14 +14,40 @@ import {
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { GroupQueryDto } from './dto/group-query.dto';
+import { SyncWassengerResponseDto } from './dto/sync-wassenger-response.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { GroupResponseDto } from './serializers/group.serializer';
 import { GroupsService } from './groups.service';
+import { GroupsSyncService } from './groups-sync.service';
 
 @ApiTags('groups')
 @Controller('groups')
 export class GroupsController {
-  constructor(private readonly groupsService: GroupsService) {}
+  constructor(
+    private readonly groupsService: GroupsService,
+    private readonly groupsSyncService: GroupsSyncService,
+  ) {}
+
+  @Post('sync-wassenger')
+  @ApiOperation({
+    summary: 'Import WhatsApp groups from Wassenger',
+    description:
+      'Fetches every group on the configured Wassenger device (paginated), creates any not already known ' +
+      '(always unmonitored, type INTERNAL, 30-minute SLA), and updates the name of any that changed. ' +
+      'Existing active/type/slaMinutes/members/keywords/history are never touched. Applied in one transaction.',
+  })
+  @ApiResponse({ status: HttpStatus.CREATED, type: SyncWassengerResponseDto })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Wassenger is not configured',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_GATEWAY,
+    description: 'Wassenger API request failed',
+  })
+  syncWassenger(): Promise<SyncWassengerResponseDto> {
+    return this.groupsSyncService.syncFromWassenger();
+  }
 
   @Get()
   @ApiOperation({

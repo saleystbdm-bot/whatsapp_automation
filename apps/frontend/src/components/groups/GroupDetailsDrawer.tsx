@@ -6,9 +6,10 @@ interface GroupDetailsDrawerProps {
   group: MonitoredGroup;
   onClose: () => void;
   onRemove: (group: MonitoredGroup) => void;
+  onEditConfiguration: (group: MonitoredGroup) => void;
 }
 
-export function GroupDetailsDrawer({ group, onClose, onRemove }: GroupDetailsDrawerProps) {
+export function GroupDetailsDrawer({ group, onClose, onRemove, onEditConfiguration }: GroupDetailsDrawerProps) {
   return (
     <Drawer
       title={
@@ -19,16 +20,21 @@ export function GroupDetailsDrawer({ group, onClose, onRemove }: GroupDetailsDra
       }
       onClose={onClose}
       footer={
-        <button
-          type="button"
-          className="btn btn-danger btn-block"
-          onClick={() => {
-            onRemove(group);
-            onClose();
-          }}
-        >
-          Remove Monitoring
-        </button>
+        <div className="drawer-footer-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => onEditConfiguration(group)}>
+            Edit Configuration
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger btn-block"
+            onClick={() => {
+              onRemove(group);
+              onClose();
+            }}
+          >
+            Remove Monitoring
+          </button>
+        </div>
       }
     >
       <div className="detail-status-row">

@@ -1,7 +1,5 @@
 import { apiClient } from '../api/client';
-import { DEMO_MODE } from '../lib/api';
 import { formatTime } from '../lib/format';
-import * as demo from './demoStore';
 import type {
   DashboardData,
   EodReport,
@@ -31,7 +29,9 @@ import type {
   GroupResponse,
   IssueDetailResponse,
   IssueResponse,
+  KeywordResponse,
   SlaResponse,
+  SyncWassengerResponse,
   TeamMemberResponse,
 } from './backend-types';
 
@@ -50,13 +50,11 @@ export async function getGroups(params?: {
   type?: GroupType;
   search?: string;
 }): Promise<MonitoredGroup[]> {
-  if (DEMO_MODE) return demo.getGroups(params);
   const res = await apiClient.get<GroupResponse[]>('/groups', params);
   return res.map(mapGroupResponse);
 }
 
 export async function getGroup(id: string): Promise<MonitoredGroup> {
-  if (DEMO_MODE) return demo.getGroup(id);
   const res = await apiClient.get<GroupResponse>(`/groups/${id}`);
   return mapGroupResponse(res);
 }
@@ -69,7 +67,6 @@ export async function createGroup(input: {
   memberIds?: string[];
   keywords?: string[];
 }): Promise<MonitoredGroup> {
-  if (DEMO_MODE) return demo.createGroup(input);
   const created = await apiClient.post<GroupResponse>('/groups', {
     whatsappGroupId: input.whatsappGroupId,
     name: input.name,
@@ -99,9 +96,72 @@ export async function updateGroup(
   id: string,
   patch: { name?: string; type?: GroupType; slaMinutes?: number; active?: boolean },
 ): Promise<MonitoredGroup> {
-  if (DEMO_MODE) return demo.updateGroup(id, patch);
   const res = await apiClient.patch<GroupResponse>(`/groups/${id}`, patch);
   return mapGroupResponse(res);
+}
+
+export function syncWassengerGroups(): Promise<SyncWassengerResponse> {
+  return apiClient.post<SyncWassengerResponse>('/groups/sync-wassenger');
+}
+
+// ---------------------------------------------------------------------------
+// Group keywords
+// ---------------------------------------------------------------------------
+
+export async function getGroupKeywords(groupId: string): Promise<KeywordResponse[]> {
+  const res = await apiClient.get<KeywordResponse[]>(`/groups/${groupId}/keywords`);
+  return res.filter((keyword) => keyword.active);
+}
+
+function addGroupKeyword(groupId: string, keyword: string): Promise<KeywordResponse> {
+  return apiClient.post<KeywordResponse>(`/groups/${groupId}/keywords`, { keyword });
+}
+
+function removeGroupKeyword(groupId: string, keywordId: string): Promise<void> {
+  return apiClient.delete<void>(`/groups/${groupId}/keywords/${keywordId}`);
+}
+
+export interface GroupConfigInput {
+  type: GroupType;
+  slaMinutes: number;
+  /** New keyword text to add (already trimmed, deduplicated by the caller). */
+  keywordsToAdd: string[];
+  /** ids of currently-active keywords to deactivate. */
+  keywordIdsToRemove: string[];
+  /**
+   * Whether to enable monitoring once everything else has saved
+   * successfully. Omit (or false) for editing an already-monitored
+   * group's configuration — that must never change `active`.
+   */
+  activate?: boolean;
+}
+
+/**
+ * Saves a group's category, SLA, and keyword changes, then — only once
+ * every one of those has actually succeeded — enables monitoring. If any
+ * step fails, the error propagates immediately and `active` is never
+ * touched, so a failed configuration save can never leave a group
+ * half-configured and monitored. There is no single backend endpoint for
+ * this (none was asked for) — ordering existing calls this way is what
+ * makes "save config, then activate" safe without one.
+ */
+export async function configureGroupMonitoring(
+  groupId: string,
+  input: GroupConfigInput,
+): Promise<MonitoredGroup> {
+  await updateGroup(groupId, { type: input.type, slaMinutes: input.slaMinutes });
+
+  for (const keywordId of input.keywordIdsToRemove) {
+    await removeGroupKeyword(groupId, keywordId);
+  }
+  for (const keyword of input.keywordsToAdd) {
+    await addGroupKeyword(groupId, keyword);
+  }
+
+  if (input.activate) {
+    return updateGroup(groupId, { active: true });
+  }
+  return getGroup(groupId);
 }
 
 export function fetchAllGroups(): Promise<WhatsAppGroup[]> {
@@ -117,7 +177,6 @@ export function fetchMonitoredGroups(): Promise<MonitoredGroup[]> {
 // ---------------------------------------------------------------------------
 
 export async function getTeamMembers(params?: { active?: boolean; search?: string }): Promise<TeamMember[]> {
-  if (DEMO_MODE) return demo.getTeamMembers(params);
   const res = await apiClient.get<TeamMemberResponse[]>('/team-members', params);
   return res.map(mapTeamMemberResponse);
 }
@@ -139,19 +198,16 @@ export interface IssueFilters {
 }
 
 export async function getIssues(filters?: IssueFilters): Promise<Issue[]> {
-  if (DEMO_MODE) return demo.getIssues(filters);
   const res = await apiClient.get<IssueResponse[]>('/issues', filters);
   return res.map((issue) => mapIssueResponse(issue));
 }
 
 export async function getIssue(id: string): Promise<Issue> {
-  if (DEMO_MODE) return demo.getIssue(id);
   const res = await apiClient.get<IssueDetailResponse>(`/issues/${id}`);
   return mapIssueResponse(res);
 }
 
 export async function updateIssueStatus(id: string, status: IssueStatus, resolvedBy?: string): Promise<Issue> {
-  if (DEMO_MODE) return demo.updateIssueStatus(id, status);
   const res = await apiClient.patch<IssueDetailResponse>(`/issues/${id}`, {
     status,
     ...(resolvedBy ? { resolvedBy } : {}),
@@ -176,19 +232,16 @@ export interface SlaFilters {
 }
 
 export async function getSlaIncidents(filters?: SlaFilters): Promise<SlaIncident[]> {
-  if (DEMO_MODE) return demo.getSlaIncidents(filters);
   const res = await apiClient.get<SlaResponse[]>('/sla', filters);
   return res.map(mapSlaResponse);
 }
 
 export async function getSlaIncident(id: string): Promise<SlaIncident> {
-  if (DEMO_MODE) return demo.getSlaIncident(id);
   const res = await apiClient.get<SlaResponse>(`/sla/${id}`);
   return mapSlaResponse(res);
 }
 
 export async function respondSla(id: string, respondedBy?: string): Promise<SlaIncident> {
-  if (DEMO_MODE) return demo.respondSla(id);
   const res = await apiClient.patch<SlaResponse>(`/sla/${id}`, {
     action: 'RESPOND',
     ...(respondedBy ? { respondedBy } : {}),
@@ -197,7 +250,6 @@ export async function respondSla(id: string, respondedBy?: string): Promise<SlaI
 }
 
 export async function missSla(id: string): Promise<SlaIncident> {
-  if (DEMO_MODE) return demo.missSla(id);
   const res = await apiClient.patch<SlaResponse>(`/sla/${id}`, { action: 'MISS' });
   return mapSlaResponse(res);
 }
@@ -218,18 +270,15 @@ export interface EodFilters {
 }
 
 export async function getEod(filters?: EodFilters): Promise<EodReport[]> {
-  if (DEMO_MODE) return demo.getEod(filters);
   const res = await apiClient.get<EodResponse[]>('/eod', filters);
   return res.map((report) => mapEodResponse(report));
 }
 
 export async function getEodSummary(filters?: { date?: string; groupId?: string }): Promise<EodSummaryResponse> {
-  if (DEMO_MODE) return demo.getEodSummary(filters);
   return apiClient.get<EodSummaryResponse>('/eod/summary', filters);
 }
 
 export async function getEodReport(id: string): Promise<EodReport> {
-  if (DEMO_MODE) return demo.getEodReport(id);
   const res = await apiClient.get<EodDetailResponse>(`/eod/${id}`);
   return mapEodResponse(res);
 }
@@ -252,7 +301,6 @@ export async function fetchEodReports(date?: string): Promise<EodData> {
 // ---------------------------------------------------------------------------
 
 export async function getDashboard(date?: string): Promise<DashboardData> {
-  if (DEMO_MODE) return demo.getDashboard(date);
   const res = await apiClient.get<DashboardResponse>('/dashboard', { date });
   return mapDashboardResponse(res);
 }

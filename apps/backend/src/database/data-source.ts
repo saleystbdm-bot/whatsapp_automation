@@ -9,6 +9,7 @@ import { Keyword } from '../keywords/entities/keyword.entity';
 import { Notification } from '../notifications/entities/notification.entity';
 import { SlaIncident } from '../sla/entities/sla-incident.entity';
 import { TeamMember } from '../team-members/entities/team-member.entity';
+import { WassengerWebhookEvent } from '../webhooks/entities/wassenger-webhook-event.entity';
 
 // The `typeorm` CLI (see package.json's "typeorm" script) runs standalone,
 // outside Nest's bootstrap, so it doesn't get env vars from ConfigModule.
@@ -35,6 +36,7 @@ const AppDataSource = new DataSource({
     SlaIncident,
     EodReport,
     Notification,
+    WassengerWebhookEvent,
   ],
   migrations: [resolve(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,

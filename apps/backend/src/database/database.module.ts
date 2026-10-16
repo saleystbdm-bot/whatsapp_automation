@@ -9,6 +9,7 @@ import { Keyword } from '../keywords/entities/keyword.entity';
 import { Notification } from '../notifications/entities/notification.entity';
 import { SlaIncident } from '../sla/entities/sla-incident.entity';
 import { TeamMember } from '../team-members/entities/team-member.entity';
+import { WassengerWebhookEvent } from '../webhooks/entities/wassenger-webhook-event.entity';
 
 /**
  * Schema is owned entirely by migrations (see src/database/migrations and
@@ -38,6 +39,7 @@ import { TeamMember } from '../team-members/entities/team-member.entity';
           SlaIncident,
           EodReport,
           Notification,
+          WassengerWebhookEvent,
         ],
         synchronize: false,
       }),

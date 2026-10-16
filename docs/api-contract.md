@@ -1029,6 +1029,35 @@ never `SENT` merely because NestJS created it.
 | 400    | Malformed payload. |
 | 404    | Unknown `notificationId`. |
 
+## Webhooks (Wassenger → backend, Phase 2H)
+
+| Method | Path                | Purpose                                          |
+| ------ | ------------------- | ------------------------------------------------- |
+| POST   | `/webhooks/wassenger?secret=...` | Receive a Wassenger event; forward to n8n only if the group is monitored. |
+
+Register this exact URL as the webhook destination in Wassenger (replacing
+n8n's own webhook URL as the direct target — Wassenger now calls the
+backend first). See `docs/architecture.md` → "Webhooks / Inbound Event
+Receiver" for the full design, including why authentication is a secret in
+the URL rather than an HMAC signature, and the exact classification/retry
+rules.
+
+### POST /webhooks/wassenger
+
+Request body: the Wassenger message object as delivered (shape confirmed
+directly against a live account's `GET /v1/chat/:deviceId/messages`, not
+invented — see the architecture doc for the caveat on the exact webhook
+envelope). No `class-validator` DTO is applied to this body — the global
+`forbidNonWhitelisted` pipe would reject legitimate fields an unconfirmed
+envelope might include, so validation is done defensively in the service.
+
+| Status | When |
+| ------ | ---------------------------------------------------------- |
+| 200    | Processed — forwarded to n8n, or deliberately skipped (unmonitored/unknown group, private message, outbound, unsupported event). Body: `{ "status": "forwarded" }`, `{ "status": "duplicate" }`, or `{ "status": "skipped", "reason": "..." }`. |
+| 400    | Malformed payload — no message id present. Not retried by Wassenger (retrying won't help). |
+| 401    | Missing or incorrect `?secret=`. |
+| 503    | Forwarding to n8n failed (timeout/network/non-2xx). Wassenger will redeliver this message later — the backend has no separate retry queue, it relies on Wassenger's own observed (hours-long window) retry behavior. |
+
 ## Notes
 
 - `message_id` is the idempotency key for `/events/issues` and `/events/sla`

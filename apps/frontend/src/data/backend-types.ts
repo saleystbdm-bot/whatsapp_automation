@@ -17,6 +17,13 @@ export interface KeywordResponse {
   active: boolean;
 }
 
+export interface SyncWassengerResponse {
+  totalFetched: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+}
+
 export interface GroupResponse {
   id: string;
   whatsappGroupId: string;

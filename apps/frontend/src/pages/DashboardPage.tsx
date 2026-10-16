@@ -12,7 +12,7 @@ import { fetchDashboardData } from '../data/repository';
 import { useAsyncData } from '../hooks/useAsyncData';
 
 export function DashboardPage() {
-  const { data, loading, error } = useAsyncData(fetchDashboardData, []);
+  const { data, loading, error, refetch } = useAsyncData(fetchDashboardData, []);
 
   return (
     <section className="page">
@@ -38,7 +38,7 @@ export function DashboardPage() {
       />
 
       {loading && <LoadingState label="Loading dashboard…" />}
-      {!loading && error && <ErrorState message={error} />}
+      {!loading && error && <ErrorState message={error} onRetry={refetch} />}
 
       {!loading && !error && data && (
         <>

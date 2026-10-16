@@ -4,41 +4,44 @@ export interface AsyncDataState<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
 /**
- * Runs an async loader (currently backed by the mock repository) and tracks
- * loading/error/data state. Once real API calls replace the repository
- * functions, pages using this hook require no changes.
+ * Runs an async loader against the repository (backend API) and tracks
+ * loading/error/data state. `refetch` re-runs the same loader, for an
+ * error state's "Try again" action.
  */
 export function useAsyncData<T>(loader: () => Promise<T>, deps: unknown[] = []): AsyncDataState<T> {
-  const [state, setState] = useState<AsyncDataState<T>>({
-    data: null,
-    loading: true,
-    error: null,
-  });
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    setLoading(true);
+    setError(null);
 
     loader()
-      .then((data) => {
+      .then((result) => {
         if (!cancelled) {
-          setState({ data, loading: false, error: null });
+          setData(result);
+          setLoading(false);
         }
       })
-      .catch((error: unknown) => {
+      .catch((err: unknown) => {
         if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Something went wrong.';
-          setState({ data: null, loading: false, error: message });
+          setError(err instanceof Error ? err.message : 'Something went wrong.');
+          setLoading(false);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, deps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...deps, attempt]);
 
-  return state;
+  return { data, loading, error, refetch: () => setAttempt((n) => n + 1) };
 }

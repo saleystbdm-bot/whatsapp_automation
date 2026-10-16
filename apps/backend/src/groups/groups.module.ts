@@ -6,11 +6,13 @@ import { Group } from './entities/group.entity';
 import { GroupMembersController } from './group-members.controller';
 import { GroupsController } from './groups.controller';
 import { GroupsService } from './groups.service';
+import { GroupsSyncService } from './groups-sync.service';
+import { WassengerClientService } from './wassenger/wassenger-client.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Group, GroupMember]), TeamMembersModule],
   controllers: [GroupsController, GroupMembersController],
-  providers: [GroupsService],
+  providers: [GroupsService, GroupsSyncService, WassengerClientService],
   exports: [GroupsService, TypeOrmModule],
 })
 export class GroupsModule {}

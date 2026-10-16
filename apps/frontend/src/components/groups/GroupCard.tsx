@@ -15,12 +15,7 @@ export function AvailableGroupCard({ group, onMonitor }: AvailableGroupCardProps
       </div>
       <div className="group-card-body">
         <span className="group-card-name">{group.name}</span>
-        <span className="group-card-meta">
-          <UsersIcon aria-hidden="true" />
-          {group.memberCount} members
-        </span>
       </div>
-      <GroupTypeBadge type={group.type} />
       <button type="button" className="btn btn-primary btn-sm" onClick={() => onMonitor(group)}>
         Monitor
       </button>

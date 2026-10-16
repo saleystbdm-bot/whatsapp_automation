@@ -26,3 +26,6 @@ npm-debug.log*
 
 # Docker
 postgres_data/
+
+# Local database backups
+whatsapp_operations_before_2H.dump

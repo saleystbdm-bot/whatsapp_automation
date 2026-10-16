@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { timingSafeEqual } from 'crypto';
+import { safeEqual } from '../../common/security/safe-equal.util';
 
 const HEADER_NAME = 'x-n8n-webhook-secret';
 
@@ -49,11 +49,4 @@ export class WebhookSecretGuard implements CanActivate {
 
     return true;
   }
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const bufferA = Buffer.from(a);
-  const bufferB = Buffer.from(b);
-  if (bufferA.length !== bufferB.length) return false;
-  return timingSafeEqual(bufferA, bufferB);
 }

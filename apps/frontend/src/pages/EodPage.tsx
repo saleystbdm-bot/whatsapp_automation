@@ -12,7 +12,7 @@ import { fetchEodReports, type EodData } from '../data/repository';
 import { useEditableAsyncData } from '../hooks/useEditableAsyncData';
 
 export function EodPage() {
-  const { items: data, loading, error } = useEditableAsyncData<EodData>(fetchEodReports, []);
+  const { items: data, loading, error, refetch } = useEditableAsyncData<EodData>(fetchEodReports, []);
   const reports = data?.reports ?? null;
   const [selectedReportKey, setSelectedReportKey] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export function EodPage() {
       />
 
       {loading && <LoadingState label="Loading EOD reports…" />}
-      {!loading && error && <ErrorState message={error} />}
+      {!loading && error && <ErrorState message={error} onRetry={refetch} />}
 
       {!loading && !error && reports && data && (
         <>

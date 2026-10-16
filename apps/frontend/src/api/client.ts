@@ -37,7 +37,7 @@ async function parseErrorBody(response: Response): Promise<{ message: string; de
 }
 
 async function request<T>(
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   options?: { params?: object; body?: unknown },
 ): Promise<T> {
@@ -70,4 +70,5 @@ export const apiClient = {
   get: <T>(path: string, params?: object) => request<T>('GET', path, { params }),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body }),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, { body }),
+  delete: <T>(path: string) => request<T>('DELETE', path),
 };

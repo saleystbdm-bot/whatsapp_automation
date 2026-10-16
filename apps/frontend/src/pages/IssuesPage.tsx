@@ -36,6 +36,7 @@ export function IssuesPage() {
     setItems: setIssues,
     loading,
     error,
+    refetch,
   } = useEditableAsyncData(
     () =>
       getIssues({
@@ -75,7 +76,7 @@ export function IssuesPage() {
       <PageHeader title="Issues" subtitle="All issues detected from monitored WhatsApp groups." />
 
       {loading && <LoadingState label="Loading issues…" />}
-      {!loading && error && <ErrorState message={error} />}
+      {!loading && error && <ErrorState message={error} onRetry={refetch} />}
       {!loading && !error && mutationError && <ErrorState message={mutationError} />}
 
       {!loading && !error && issues && (

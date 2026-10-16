@@ -186,9 +186,19 @@ This repository currently contains:
   Wassenger or sends WhatsApp directly; see
   [`docs/architecture.md`](docs/architecture.md) "Events / n8n
   Integration Boundary".
+- **Wassenger webhook receiver** — `POST /webhooks/wassenger?secret=...`
+  (`src/webhooks/`). The backend is now the authoritative, database-backed
+  source for "is this group monitored" — it receives Wassenger's webhook
+  directly, looks up `whatsappGroupId` against `groups`, and forwards only
+  monitored-group messages on to n8n (`N8N_WASSENGER_FORWARD_URL`). See
+  [`docs/architecture.md`](docs/architecture.md) "Webhooks / Inbound Event
+  Receiver" for the classification rules, idempotency design, and retry
+  strategy. **Requires `npm run migration:run`** for the
+  `wassenger_webhook_events` table before this endpoint will work.
 
-Not yet implemented: the actual n8n workflow nodes that call these
-endpoints (this repo has no n8n workflow file — see
-[`docs/api-contract.md`](docs/api-contract.md) for the exact requests to
-configure), Wassenger connectivity, and CEO/frontend-facing
+Not yet implemented: the n8n workflow itself has not been updated to
+receive forwarded events instead of the raw Wassenger webhook (this repo
+has no n8n workflow file to edit — see
+[`docs/api-contract.md`](docs/api-contract.md) and `docs/architecture.md`
+for the exact node changes required), and CEO/frontend-facing
 authentication.

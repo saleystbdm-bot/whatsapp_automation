@@ -7,9 +7,11 @@ WhatsApp
    ↓
 Wassenger
    ↓
-n8n
+NestJS Backend (webhook receiver) ← PostgreSQL (monitored-group check)
+   ↓ (monitored groups only)
+n8n (detection/orchestration)
    ↓
-NestJS Backend
+NestJS Backend (event endpoints)
    ↓
 PostgreSQL
    ↓
@@ -18,10 +20,15 @@ React Frontend
 CEO Operations Dashboard
 ```
 
-Messages originate on WhatsApp, are captured by Wassenger, forwarded to n8n for
-detection/orchestration, and persisted and processed as business state by the
-NestJS backend into PostgreSQL. The React frontend reads that state through the
-backend API to render the CEO Operations Dashboard.
+Messages originate on WhatsApp and are captured by Wassenger, which calls the
+NestJS backend's webhook receiver directly (Phase 2H) — **not n8n**. The
+backend is the authoritative source for "is this group monitored," checked
+against PostgreSQL on every inbound message; only messages for monitored
+groups are forwarded on to n8n for detection/orchestration. n8n still talks
+to the backend's event endpoints (`/events/*`) to persist detected events and
+lifecycle transitions, exactly as before. The React frontend reads that state
+through the backend API to render the CEO Operations Dashboard. See "Webhooks
+/ Inbound Event Receiver" below for the full design.
 
 ## Layer Responsibilities
 
@@ -35,9 +42,10 @@ backend API to render the CEO Operations Dashboard.
 
 ### n8n
 
-- Receives the WhatsApp webhook from Wassenger.
-- Normalizes raw WhatsApp payloads into a consistent internal message shape.
-- Determines whether a message belongs to a monitored group.
+- Receives only backend-forwarded, already-monitored WhatsApp events (Phase
+  2H) — it no longer receives the raw Wassenger webhook directly, and no
+  longer decides monitoring status itself.
+- Normalizes the forwarded payload into a consistent internal message shape.
 - Detects mentions (keyword/tag based) and issue/problem messages.
 - Runs SLA timers and checks whether a response has occurred within the SLA
   window.
@@ -201,6 +209,69 @@ duration n8n waits before firing its "missed" check, the *persisted*
 deadline it will be compared against always comes from the backend's own
 `POST /events/sla` response (`Group.slaMinutes`), never from n8n
 recalculating one itself.
+
+### Webhooks / Inbound Event Receiver (Phase 2H)
+
+Wassenger → NestJS → PostgreSQL monitored-group check → n8n only if monitored.
+`src/webhooks/` (`WassengerWebhookController`/`WassengerWebhookService`).
+
+- **The backend, not n8n, is authoritative for monitoring status.** Every
+  inbound Wassenger webhook call is looked up against `groups` by
+  `whatsappGroupId` (the real WhatsApp group WID, never Wassenger's own
+  internal group id) on every single delivery — there is no cached or
+  n8n-side copy of this decision, so enabling/disabling monitoring on the
+  Groups page takes effect immediately, with nothing to redeploy in n8n.
+- **Authentication**: `?secret=<WASSENGER_WEBHOOK_SECRET>` on the webhook
+  URL itself. This is deliberately not an HMAC/signature check — Wassenger's
+  own `/v1/webhooks` registration schema (inspected directly against a live
+  account) has no signing-key field at all, so there is nothing to verify a
+  signature against. The only lever Wassenger's API actually exposes is
+  control over the destination URL, so the secret is carried there.
+- **Classification** (in order): malformed payload (no message id) → 400,
+  reject outright, never retried. Otherwise: outbound/automation-originated
+  → skipped (`outbound`, loop prevention); unsupported webhook event type →
+  skipped; broadcast/channel/notification/revoked → skipped
+  (`unsupported_event`); private (non-group) message → skipped
+  (`private_message`); non-text or empty body → skipped
+  (`unsupported_message_type`); unknown group → skipped (`unknown_group`,
+  **never auto-created**); known but `active = false` → skipped
+  (`not_monitored`). Only what survives all of these is forwarded.
+- **Idempotency**: a dedicated `wassenger_webhook_events` table (migration
+  `WassengerWebhookEvents`), keyed on Wassenger's own message id. Chosen
+  over an in-memory cache because Wassenger's own retry behavior, observed
+  directly on a live webhook registration, spans **hours**, not seconds — an
+  in-memory set would not survive a backend restart across that window. A
+  message already successfully forwarded is never forwarded again, however
+  many times it's redelivered; a message whose first forward attempt
+  *failed* is retried on redelivery (the row is updated in place, never
+  duplicated).
+- **Retry strategy**: there is no separate backend-side retry queue. A
+  forwarding failure (timeout, network error, non-2xx from n8n) returns
+  `503` to Wassenger, which triggers Wassenger's own redelivery — confirmed,
+  not assumed, by inspecting a real failing webhook registration on this
+  project's account. A successful outcome (forwarded, or deliberately
+  skipped) always returns `200`, so Wassenger never retries a decision that
+  already succeeded.
+- **Payload forwarded to n8n**: the original Wassenger message object,
+  unchanged, plus an additive `_monitoring` object (`groupId`, `groupType`,
+  `slaMinutes`, `forwardedAt`) — chosen so any existing n8n node reading the
+  native Wassenger field names keeps working unmodified, while the new
+  monitoring-confirmed fields are simply available alongside them.
+- **Authentication to n8n**: `X-N8N-Webhook-Secret: <N8N_WEBHOOK_SHARED_SECRET>`
+  — the same header/secret convention the Events boundary already uses (see
+  above), reused rather than introducing a second one.
+
+#### n8n workflow changes required (not applied by this project — see final report)
+
+The `Check Monitored Group` Code node's hardcoded `MONITORED_GROUPS` array
+should be removed/bypassed: every event n8n now receives is, by
+construction, already for a monitored group. The workflow's trigger webhook
+must point at this backend's forward destination, not at Wassenger directly
+— i.e. Wassenger's own webhook registration must be updated to call
+`POST {BACKEND_URL}/webhooks/wassenger?secret=...` instead of n8n's URL
+directly, and n8n's webhook node becomes the target of the backend's
+`N8N_WASSENGER_FORWARD_URL` forward, authenticated via the shared secret
+header above.
 
 ### PostgreSQL
 

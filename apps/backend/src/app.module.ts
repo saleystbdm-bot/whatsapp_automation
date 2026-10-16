@@ -13,6 +13,7 @@ import { KeywordsModule } from './keywords/keywords.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SlaModule } from './sla/sla.module';
 import { TeamMembersModule } from './team-members/team-members.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { TeamMembersModule } from './team-members/team-members.module';
     NotificationsModule,
     DashboardModule,
     EventsModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

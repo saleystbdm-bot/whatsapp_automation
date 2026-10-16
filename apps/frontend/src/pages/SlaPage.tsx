@@ -33,6 +33,7 @@ export function SlaPage() {
     data: incidents,
     loading,
     error,
+    refetch,
   } = useAsyncData(
     () =>
       getSlaIncidents({
@@ -61,7 +62,7 @@ export function SlaPage() {
       />
 
       {loading && <LoadingState label="Loading SLA incidents…" />}
-      {!loading && error && <ErrorState message={error} />}
+      {!loading && error && <ErrorState message={error} onRetry={refetch} />}
 
       {!loading && !error && incidents && (
         <>
