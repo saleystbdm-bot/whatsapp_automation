@@ -1,0 +1,39 @@
+[1mdiff --git a/.env.example b/.env.example[m
+[1mindex 79d6fc7..8d513c8 100644[m
+[1m--- a/.env.example[m
+[1m+++ b/.env.example[m
+[36m@@ -14,16 +14,31 @@[m [mNODE_ENV=development[m
+ PORT=3000[m
+ [m
+ # ---------------------------------------------------------------------------[m
+[31m-# Wassenger (used by n8n only — never exposed to the frontend)[m
+[32m+[m[32m# Wassenger (used by n8n and the backend's WhatsApp group sync — never[m
+[32m+[m[32m# exposed to the frontend)[m
+ # ---------------------------------------------------------------------------[m
+ WASSENGER_API_KEY=[m
+[31m-WASSENGER_API_BASE_URL=https://api.wassenger.com[m
+[32m+[m[32mWASSENGER_DEVICE_ID=[m
+[32m+[m[32mWASSENGER_API_BASE_URL=https://api.wassenger.com/v1[m
+[32m+[m
+[32m+[m[32m# Shared secret authenticating Wassenger → backend webhook calls[m
+[32m+[m[32m# (POST /webhooks/wassenger?secret=...). Wassenger's own webhook[m
+[32m+[m[32m# registration has no HMAC/signature field — this is a secret carried in[m
+[32m+[m[32m# the destination URL, the only mechanism their webhook config exposes.[m
+[32m+[m[32mWASSENGER_WEBHOOK_SECRET=[m
+ [m
+ # ---------------------------------------------------------------------------[m
+[31m-# n8n (used by n8n to authenticate against the backend event endpoints)[m
+[32m+[m[32m# n8n (used by n8n to authenticate against the backend event endpoints,[m
+[32m+[m[32m# and by the backend to authenticate against n8n when forwarding events)[m
+ # ---------------------------------------------------------------------------[m
+ N8N_WEBHOOK_SHARED_SECRET=[m
+ [m
+[32m+[m[32m# The n8n workflow's own webhook URL that the backend forwards eligible[m
+[32m+[m[32m# (monitored-group) Wassenger events to. Use the workflow's PRODUCTION[m
+[32m+[m[32m# webhook URL (".../webhook/...", not ".../webhook-test/...", which only[m
+[32m+[m[32m# accepts one call while the n8n editor is open in test mode).[m
+[32m+[m[32mN8N_WASSENGER_FORWARD_URL=[m
+[32m+[m
+ # ---------------------------------------------------------------------------[m
+ # Business rules[m
+ # ---------------------------------------------------------------------------[m

@@ -39,6 +39,7 @@ const AppDataSource = new DataSource({
     WassengerWebhookEvent,
   ],
   migrations: [resolve(__dirname, 'migrations/*.{ts,js}')],
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
   synchronize: false,
 });
 

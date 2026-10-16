@@ -41,6 +41,7 @@ import { WassengerWebhookEvent } from '../webhooks/entities/wassenger-webhook-ev
           Notification,
           WassengerWebhookEvent,
         ],
+        ssl: config.get<string>('DB_SSL', 'false') === 'true' ? { rejectUnauthorized: true } : false,
         synchronize: false,
       }),
     }),
